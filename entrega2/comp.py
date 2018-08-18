@@ -40,7 +40,8 @@ class Tokenizador():
 
 			if self.posicao < len(self.origem):
 				self.atual = self.origem[self.posicao]
-			
+		
+		listaTokens.append(Token("","EOF"))
 		return listaTokens
 
 class Analisador():
@@ -57,7 +58,7 @@ class Analisador():
 		somar = False
 		subtrair = False
 		num = [0,0]
-		resposta = []
+		ans = None
 
 		for t in op:
 			if (t.tipo == 'INT') and (flagDigit == True):
@@ -84,20 +85,16 @@ class Analisador():
 					subtrair = False
 				num[1] = 0
 
-		return [num[0],op]
+			if t.valor == "EOF":
+				ans = num[0]
+
+		return ans
 
 if __name__ == "__main__":
-
-	tokObjsList = []
 	# expressoes
 	with open("testes.txt") as f:
 	    content = f.readlines()
 
 	content = [x.strip().replace(" ","") for x in content]
 	for expression in content: 
-		alsObj = Analisador(expression).analisarExpressao()
-		for tok in alsObj[1]:
-			tokObjsList.append(tok)
-		print(alsObj[0])
-
-	tokObjsList.append(Token("","EOF"))
+		print(Analisador(expression).analisarExpressao())
