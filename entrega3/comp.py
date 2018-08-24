@@ -10,38 +10,47 @@ class Tokenizador():
 		self.atual = None
 		self.Tkatual = None
 
+	def isSpace(self):
+		if self.atual == ' ':
+			space = True
+			while space:
+				self.posicao+=1
+				if self.origem[self.posicao] != ' ':
+					space = False
+			self.atual = self.origem[self.posicao]
+
+	def isComentary(self):
+		t = None
+		if self.atual == '/':
+			if self.origem[self.posicao + 1] =='*':
+				comentario = True
+				while comentario:
+					self.posicao+=1
+					if self.posicao+1 < len(self.origem):
+						self.atual = self.origem[self.posicao]
+						if self.atual == '*' and self.origem[self.posicao + 1] == '/':
+							self.posicao+=2
+							if self.posicao < len(self.origem):
+								self.atual = self.origem[self.posicao]
+								self.isSpace()
+								comentario = False
+							else:
+								t = Token('','EOF')
+								self.atual = ''
+								self.Tkatual = Token('','EOF')
+								comentario = False
+					else:
+						raise ValueError("Comentary not terminated.Expecting */")
+		return t
+
 	def selecionarProximo(self):
 		t = None
 		self.firstNumber = True
 		resultado = ''
 		if self.posicao <= (len(self.origem)) - 1: 
 			self.atual = self.origem[self.posicao]
-			if self.atual == ' ':
-				space = True
-				while space:
-					self.posicao+=1
-					if self.origem[self.posicao] != ' ':
-						space = False
-				self.atual = self.origem[self.posicao]
-			if self.atual == '/':
-				if self.origem[self.posicao + 1] =='*':
-					comentario = True
-					while comentario:
-						self.posicao+=1
-						if self.posicao+1 < len(self.origem):
-							self.atual = self.origem[self.posicao]
-							if self.atual == '*' and self.origem[self.posicao + 1] == '/':
-								self.posicao+=2
-								if self.posicao < len(self.origem):
-									self.atual = self.origem[self.posicao]
-									comentario = False
-								else:
-									t = Token('','EOF')
-									self.atual = ''
-									self.Tkatual = Token('','EOF')
-									comentario = False
-						else:
-							raise ValueError("Comentary not terminated.Expecting */")
+			self.isSpace()
+			t = self.isComentary()
 			if self.atual.isdigit():
 				while self.firstNumber:
 					resultado += self.atual
@@ -77,7 +86,6 @@ class Tokenizador():
 
 			elif self.atual == '/':
 				self.posicao += 1
-				print(self.origem[self.posicao])
 				self.firstNumber = True
 				t = Token('DIV', '/')
 				self.Tkatual = Token('DIV', '/')
@@ -101,7 +109,6 @@ class Tokenizador():
 class Analisador():
 
 	tokens = None
-
 	def __init__(self, origem):
 		self.origem = origem
 		self.tokens = Tokenizador(origem)
@@ -136,6 +143,8 @@ class Analisador():
 					raise ValueError("Expected OPERATION, got {} instead".format(nextT.valor))
 				else:
 					termLoop = False
+			elif (t.valor == 'EOF'):
+				raise EOFError("Empty file")
 			else:
 				raise ValueError("Expected INT, got {} instead".format(t.valor))
 
@@ -170,6 +179,5 @@ if __name__ == "__main__":
 	with open("testes.txt") as f:
 	    content = f.readlines()
 
-	contentClean = [x.strip().replace(" ","") for x in content]
 	for expression in content: 
 		print(Analisador(expression).analisarExpressao())
