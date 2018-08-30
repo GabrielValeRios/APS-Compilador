@@ -56,7 +56,8 @@ class Tokenizador():
 					resultado += self.atual
 					if ((self.posicao == len(self.origem) - 1) or (self.origem[self.posicao + 1] == '+') or 
 						(self.origem[self.posicao + 1] == '-') or (self.origem[self.posicao + 1] == '*') or
-						(self.origem[self.posicao + 1] == '/') or (self.origem[self.posicao + 1] == ' ')):
+						(self.origem[self.posicao + 1] == '/') or (self.origem[self.posicao + 1] == ' ') or 
+						(self.origem[self.posicao + 1] == ')')):
 							self.posicao += 1
 							t = Token('INT', int(resultado))
 							self.Tkatual = Token('INT', int(resultado))
@@ -90,6 +91,18 @@ class Tokenizador():
 				t = Token('DIV', '/')
 				self.Tkatual = Token('DIV', '/')
 
+			elif self.atual == '(':
+				self.posicao += 1
+				self.firstNumber = True
+				t  = Token('PAREN','(')
+				self.Tkatual = Token('PAREN','(')
+
+			elif self.atual == ')':
+				self.posicao += 1
+				self.firstNumber = True
+				t  = Token('PAREN',')')
+				self.Tkatual = Token('PAREN',')')
+
 			elif self.atual == ' ':
 				self.posicao += 1
 				self.firstNumber = True
@@ -116,61 +129,37 @@ class Analisador():
 
 	def fator(self):
 		t = self.tokens.getTokenAtual()
-		resposta = 0
-		accList = []
 		if t.tipo == "MINUS":
-			accList.append(t.tipo)
-			self.posicao+=1
-			self.fator()
+			self.tokens.selecionarProximo()
+			return -self.fator()
 		elif t.tipo == "PLUS":
-			accList.append(t.tipo)
-			self.posicao+=1
-			self.fator()
+			self.tokens.selecionarProximo()
+			return self.fator()
 		elif t.tipo == "INT":
-			for signal in accList:
-				if signal == "MINUS":
-					resposta -= t.valor
-				else:
-					resposta += t.valor
-			self.posicao+=1
-		return resposta
+			return t.valor
+		elif t.tipo == "PAREN":
+			if t.valor == "(":
+				ans = self.analisarExpressao()
+				t = self.tokens.getTokenAtual()	
+				if t.valor == ")":
+					return ans
 
 	def term(self):
 		termLoop = True
-		resposta = None
 		t = self.fator()
+		resposta = t
 		while termLoop:
-			t = self.tokens.getTokenAtual()
-			if (t.tipo == 'INT'):
-				if resposta == None:
-					retorno = t.valor
-				else:
-					retorno = resposta
+			if isinstance(t,int):
 				nextT = self.tokens.selecionarProximo()
 				if nextT.tipo == 'MULT':
-					nextT = self.tokens.selecionarProximo()
-					if nextT.tipo == 'INT':
-						retorno *= nextT.valor
-						resposta = retorno
-					else:
-						raise ValueError("Expected INT, got {} instead".format(nextT.valor))
+					self.tokens.selecionarProximo()
+					resposta*= self.fator()
 				elif nextT.tipo == 'DIV':
-					nextT = self.tokens.selecionarProximo()
-					if nextT.tipo == 'INT':
-						retorno //= nextT.valor
-						resposta = retorno
-					else:
-						raise ValueError("Expected INT, got {} instead".format(nextT.valor))
-				elif nextT.tipo == 'INT':
-					raise ValueError("Expected OPERATION, got {} instead".format(nextT.valor))
+					self.tokens.selecionarProximo()
+					resposta/= self.fator()
 				else:
 					termLoop = False
-			elif (t.valor == 'EOF'):
-				raise EOFError("Empty file")
-			else:
-				raise ValueError("Expected INT, got {} instead".format(t.valor))
-
-		return retorno
+		return resposta
 
 	def analisarExpressao(self):
 
@@ -178,22 +167,13 @@ class Analisador():
 		retorno = self.term()
 		while self.isNotEOF:
 			if self.tokens.getTokenAtual().tipo == 'PLUS':
-				nextT = self.tokens.selecionarProximo()
-				if nextT.tipo == 'INT':
-					retorno += self.term()
-				else:
-					raise ValueError("Expected INT, got {} instead".format(nextT.valor))
+				self.tokens.selecionarProximo()
+				retorno += self.term()
 			elif self.tokens.getTokenAtual().tipo == 'MINUS':
-				nextT = self.tokens.selecionarProximo()
-				if nextT.tipo == 'INT':
-					retorno -= self.term()
-				else:
-					raise ValueError("Expected INT, got {} instead".format(nextT.valor))
-			elif self.tokens.getTokenAtual().valor == 'EOF':
+				self.tokens.selecionarProximo()
+				retorno -= self.term()
+			elif self.tokens.getTokenAtual().valor == 'EOF' or self.tokens.getTokenAtual().valor == ')' :
 				self.isNotEOF = False
-			else:
-				self.term()
-
 		return retorno
 
 if __name__ == "__main__":
