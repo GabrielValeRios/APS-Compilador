@@ -131,12 +131,12 @@ class Analisador():
 		t = self.tokens.getTokenAtual()
 		if t.tipo == "MINUS":
 			self.tokens.selecionarProximo()
-			return -self.fator()
+			return UnOp('-',[self.fator()])
 		elif t.tipo == "PLUS":
 			self.tokens.selecionarProximo()
-			return self.fator()
+			return UnOp('+',[self.fator()])
 		elif t.tipo == "INT":
-			return t.valor
+			return IntVal(t.valor)
 		elif t.tipo == "PAREN":
 			if t.valor == "(":
 				ans = self.analisarExpressao()
@@ -153,10 +153,10 @@ class Analisador():
 				nextT = self.tokens.selecionarProximo()
 				if nextT.tipo == 'MULT':
 					self.tokens.selecionarProximo()
-					resposta*= self.fator()
+					BinOp('*',[retorno,self.term()])
 				elif nextT.tipo == 'DIV':
 					self.tokens.selecionarProximo()
-					resposta/= self.fator()
+					BinOp('/',[retorno,self.term()])
 				else:
 					termLoop = False
 		return resposta
@@ -168,13 +168,64 @@ class Analisador():
 		while self.isNotEOF:
 			if self.tokens.getTokenAtual().tipo == 'PLUS':
 				self.tokens.selecionarProximo()
-				retorno += self.term()
+				BinOp('+',[retorno,self.term()])
 			elif self.tokens.getTokenAtual().tipo == 'MINUS':
 				self.tokens.selecionarProximo()
-				retorno -= self.term()
+				BinOp('-',[retorno,self.term()])
 			elif self.tokens.getTokenAtual().valor == 'EOF' or self.tokens.getTokenAtual().valor == ')' :
 				self.isNotEOF = False
 		return retorno
+
+class Node():
+	def __init__(self):
+		valor = None
+		children = []
+	def Evaluate():
+		pass
+
+class BinOp(Node):
+	def __init__(self, valor, children):
+		self.valor = valor
+		self.children = children
+
+	@overriding
+	def Evaluate():
+		if valor == '+':
+			return children[0]+children[1]
+		elif valor == '-':
+			return children[0]-children[1]
+		elif valor == '*':
+			return children[0]*children[1]
+		elif valor == '/':
+			return children[0]/children[1]
+
+class UnOp(Node):
+	def __init__(self, valor, children):
+		self.valor = valor
+		self.children = children
+
+	@overriding
+	def Evaluate():
+		if valor == '+':
+			return children[0]
+		elif valor == '-':
+			return -children[0]
+
+class IntVal(Node):
+	def __init__(self, valor):
+		self.valor = valor
+
+	@overriding
+	def Evaluate():
+		return valor
+
+class NoOp(Node):
+	def __init__(self):
+		self.valor = None
+
+	@overriding
+	def Evaluate():
+		return valor
 
 if __name__ == "__main__":
 

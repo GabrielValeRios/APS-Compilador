@@ -1,0 +1,11 @@
+# GRAMMAR FOR LOGIC_COMP_LANGUAGE
+
+# Start symbol for the grammar: 'expr'
+#		spaces will be ignored, as well as comments within given pattern: (/* [comments] */);
+#		for now, everything that is not a 'term' won't be accepted, raising an especific error;
+#		'expr' is the result of an arithmetic expression. Gives support to ['+','-','*','//'] operands.
+#		'factor' will handle signals before numbers, and parentheses expressions;
+
+expr: term (('+'|'-') term)*
+term: fator ('*'|'//' fator)*
+factor = (('+'|'-') factor)|NUM|'(', expr, ')';
