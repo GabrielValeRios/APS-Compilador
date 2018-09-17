@@ -48,7 +48,7 @@ class Tokenizador():
 		self.firstNumber = True
 		resultInt = ''
 		resultIdent = ''
-		if self.position <= (len(self.origin)) - 1: 
+		if self.position < len(self.origin) - 1: 
 			self.current = self.origin[self.position]
 			self.isSpace()
 			t = self.isComentary()
@@ -58,7 +58,7 @@ class Tokenizador():
 					if ((self.position == len(self.origin) - 1) or (self.origin[self.position + 1] == '+') or 
 						(self.origin[self.position + 1] == '-') or (self.origin[self.position + 1] == '*') or
 						(self.origin[self.position + 1] == '/') or (self.origin[self.position + 1] == ' ') or 
-						(self.origin[self.position + 1] == ')')):
+						(self.origin[self.position + 1] == ')') or (self.origin[self.position + 1] == ';')):
 							self.position += 1
 							t = Token('INT', int(resultInt))
 							self.Tkcurrent = Token('INT', int(resultInt))
@@ -74,17 +74,21 @@ class Tokenizador():
 						self.position += 1
 						self.current = self.origin[self.position]
 				if resultIdent != "printf":
-					self.position += 1
 					self.firstNumber = True
 					t = Token('IDENTIFIER', resultIdent)
 					self.Tkcurrent = t
 					resultIdent = ''
 				else:
-					self.position += 1
 					self.firstNumber = True
 					t = Token('PRINTF', resultIdent)
 					self.Tkcurrent = t
 					resultIdent = ''
+
+			elif self.current == ";":
+				self.position += 1
+				self.firstNumber = True
+				t  = Token('SEMI-COLON',';')
+				self.Tkcurrent = t
 
 			elif self.current == '{':
 				self.position += 1
@@ -148,9 +152,10 @@ class Tokenizador():
 				self.current = self.origin[self.position]
 
 		else:
+			print("ola", self.position, len(self.origin) - 1)
 			t = Token('','EOF')
 			self.Tkcurrent = Token('','EOF')
-
+			
 		return t
 
 	def getTokencurrent(self):
@@ -188,6 +193,10 @@ class Analyser():
 				else:
 					raise ValueError(") missing")
 				return ans
+		elif t.typo == "IDENTIFIER":
+			v = t.value
+			self.tokens.selectNext()
+			return VarVal(v)
 		else:
 			raise ValueError("Factor error")
 
@@ -214,6 +223,59 @@ class Analyser():
 				ans = BinOp('-',[ans,self.term()])
 		return ans
 
+	def statments(self):
+		t = self.tokens.getTokencurrent()
+
+		if t.typo == "BRACKETS":
+			if t.value == "{":
+				statments = []
+				self.tokens.selectNext()
+				while t.value != "}":
+					s = self.statment()
+					t = self.tokens.getTokencurrent()
+					if t.typo == "SEMI-COLON":
+						statments.append(s)
+						self.tokens.selectNext()
+						t = self.tokens.getTokencurrent()
+				return StatmentsNode(statments)
+
+	def statment(self):
+		t = self.tokens.getTokencurrent()
+		if t.typo == "IDENTIFIER":
+			return self.atribution() 
+		elif t.typo == "PRINTF":
+			self.tokens.selectNext()
+			t = self.tokens.getTokencurrent()
+			if t.typo == "PAREN":
+				if t.value == "(":
+					self.tokens.selectNext()
+					ans = PrintfNode([self.parseExpression()])
+					t = self.tokens.getTokencurrent()	
+					if t.value == ")":
+						self.tokens.selectNext()
+						return ans
+					else:
+						raise ValueError(") missing")
+		elif t.typo == "BRACKETS":
+			if t.value == "{":
+				ans = self.statments()
+				t = self.tokens.getTokencurrent()
+				if t.value == "}":
+					self.tokens.selectNext()
+					print(self.tokens.getTokencurrent().value,self.tokens.position)
+					return ans
+
+	def atribution(self):
+		t = self.tokens.getTokencurrent()
+		var = t.value
+		self.tokens.selectNext()
+		t = self.tokens.getTokencurrent()
+		if t.typo == "EQUAL":
+			self.tokens.selectNext()
+			return BinOp('=',[var,self.parseExpression()])
+		else:
+			raise("erro-Atribuiton")
+
 class Node():
 	def __init__(self):
 		self.value = None
@@ -221,57 +283,88 @@ class Node():
 	def Evaluate():
 		pass
 
+class StatmentsNode(Node):
+	def __init__(self, children):
+		self.children = children
+
+	def Evaluate(self,symbolTable):
+		for i in self.children:
+			i.Evaluate(symbolTable)
+
+class PrintfNode(Node):
+	def __init__(self, children):
+		self.children = children
+
+	def Evaluate(self,symbolTable):
+		print(self.children[0].Evaluate(symbolTable))
+
 class BinOp(Node):
 	def __init__(self, value, children):
 		self.value = value
 		self.children = children
 
-	def Evaluate(self):
-		if self.value == '+':
-			return self.children[0].Evaluate()+self.children[1].Evaluate()
-		elif self.value == '-':
-			return self.children[0].Evaluate()-self.children[1].Evaluate()
-		elif self.value == '*':
-			return self.children[0].Evaluate()*self.children[1].Evaluate()
-		elif self.value == '/':
-			return self.children[0].Evaluate()//self.children[1].Evaluate()
+	def Evaluate(self, symbolTable):
+		if self.value == "=":
+			return symbolTable.setValue(self.children[0],self.children[1].Evaluate(symbolTable))
+		else: 
+			if self.value == '+':
+				return self.children[0].Evaluate(symbolTable)+self.children[1].Evaluate(symbolTable)
+			elif self.value == '-':
+				return self.children[0].Evaluate(symbolTable)-self.children[1].Evaluate(symbolTable)
+			elif self.value == '*':
+				return self.children[0].Evaluate(symbolTable)*self.children[1].Evaluate(symbolTable)
+			elif self.value == '/':
+				return self.children[0].Evaluate(symbolTable)//self.children[1].Evaluate(symbolTable)
 
 class UnOp(Node):
 	def __init__(self, value, children):
 		self.value = value
 		self.children = children
 
-	def Evaluate(self):
+	def Evaluate(self,symbolTable):
 		if self.value == '+':
-			return self.children[0].Evaluate()
+			return self.children[0].Evaluate(symbolTable)
 		else:
-			return -self.children[0].Evaluate()
+			return -self.children[0].Evaluate(symbolTable)
 
 class IntVal(Node):
 	def __init__(self, value):
 		self.value = value
 
-	def Evaluate(self):
+	def Evaluate(self,symbolTable):
 		return self.value
+
+class VarVal(Node):
+	def __init__(self, value):
+		self.value = value
+
+	def Evaluate(self,symbolTable):
+		return symbolTable.getValue(self.value)
 
 class NoOp(Node):
 	def __init__(self):
 		self.value = None
 
-	def Evaluate(self):
+	def Evaluate(self,symbolTable):
 		return self.value
 
-class varDic():
-	
+class SymbolTable():
+	def __init__(self):
+		self.symbolTable = {}
 
+	def getValue(self, key):
+		return self.symbolTable.get(key)
+
+	def setValue(self, key, value):
+		self.symbolTable['{}'.format(key)] = value
 
 def main():
-	varDic = {}
+	symbolTable = SymbolTable()
 	with open("testes.c") as f:
 	    content = f.readlines()
-	for expression in content: 
-		root = Analyser(expression).parseExpression()
-		print(root.Evaluate())
+	for expression in content:
+		root = Analyser(expression).statments()
+		root.Evaluate(symbolTable)
 
 if __name__ == "__main__":
 	main()
