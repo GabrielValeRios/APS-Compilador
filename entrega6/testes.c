@@ -1,1 +1,1 @@
-{x=2;{printf(x);};} 
+{printf(5);} 

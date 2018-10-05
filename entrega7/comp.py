@@ -58,7 +58,8 @@ class Tokenizador():
 					if ((self.position == len(self.origin) - 1) or (self.origin[self.position + 1] == '+') or 
 						(self.origin[self.position + 1] == '-') or (self.origin[self.position + 1] == '*') or
 						(self.origin[self.position + 1] == '/') or (self.origin[self.position + 1] == ' ') or 
-						(self.origin[self.position + 1] == ')') or (self.origin[self.position + 1] == ';')):
+						(self.origin[self.position + 1] == ')') or (self.origin[self.position + 1] == ';') or
+						(self.origin[self.position + 1] == '<') or (self.origin[self.position + 1] == '>')):
 							self.position += 1
 							t = Token('INT', int(resultInt))
 							self.Tkcurrent = Token('INT', int(resultInt))
@@ -73,14 +74,40 @@ class Tokenizador():
 						resultIdent += self.current
 						self.position += 1
 						self.current = self.origin[self.position]
-				if resultIdent != "printf":
-					self.firstNumber = True
-					t = Token('IDENTIFIER', resultIdent)
-					self.Tkcurrent = t
-					resultIdent = ''
-				else:
+				if resultIdent == "printf":
 					self.firstNumber = True
 					t = Token('PRINTF', resultIdent)
+					self.Tkcurrent = t
+					resultIdent = ''
+				elif resultIdent == "if":
+					self.firstNumber = True
+					t = Token('IF', resultIdent)
+					self.Tkcurrent = t
+					resultIdent = ''
+				elif resultIdent == "else":
+					self.firstNumber = True
+					t = Token('ELSE', resultIdent)
+					self.Tkcurrent = t
+					resultIdent = ''
+				elif resultIdent == "while":
+					self.firstNumber = True
+					t = Token('WHILE', resultIdent)
+					self.Tkcurrent = t
+					resultIdent = ''
+				elif resultIdent == "then":
+					self.firstNumber = True
+					t = Token('THEN', resultIdent)
+					self.Tkcurrent = t
+					resultIdent = ''
+				elif resultIdent == "scanf":
+					self.firstNumber = True
+					t = Token('SCANF', resultIdent)
+					self.Tkcurrent = t
+					resultIdent = ''
+
+				else:
+					self.firstNumber = True
+					t = Token('IDENTIFIER', resultIdent)
 					self.Tkcurrent = t
 					resultIdent = ''
 
@@ -110,9 +137,16 @@ class Tokenizador():
 
 			elif self.current == '=':
 				self.position += 1
-				self.firstNumber = True
-				t  = Token('EQUAL','=')
-				self.Tkcurrent = t
+				self.current = self.origin[self.position]
+				if self.current == '=':
+					self.position += 1
+					self.firstNumber = True
+					t  = Token('RELATIONAL','==')
+					self.Tkcurrent = Token('RELATIONAL','==')
+				else:
+					self.firstNumber = True
+					t  = Token('EQUAL','=')
+					self.Tkcurrent = t
 
 			elif self.current == '-':
 				self.position += 1
@@ -144,10 +178,46 @@ class Tokenizador():
 				t  = Token('PAREN',')')
 				self.Tkcurrent = Token('PAREN',')')
 
+			elif self.current == '|':
+				self.position += 1
+				self.current = self.origin[self.position]
+				if self.current == '|':
+					self.position += 1
+					self.firstNumber = True
+					t  = Token('OR','||')
+					self.Tkcurrent = Token('OR','||')
+
+			elif self.current == '&':
+				self.position += 1
+				self.current = self.origin[self.position]
+				if self.current == '&':
+					self.position += 1
+					self.firstNumber = True
+					t  = Token('AND','&&')
+					self.Tkcurrent = Token('AND','&&')
+
+			elif self.current == '>':
+				self.position += 1
+				self.firstNumber = True
+				t  = Token('RELATIONAL','>')
+				self.Tkcurrent = Token('RELATIONAL','>')
+
+			elif self.current == '<':
+				self.position += 1
+				self.firstNumber = True
+				t  = Token('RELATIONAL','<')
+				self.Tkcurrent = Token('RELATIONAL','<')
+
+			elif self.current == '!':
+				self.position += 1
+				self.firstNumber = True
+				t  = Token('NOT','!')
+				self.Tkcurrent = Token('NOT','!')
+
 			elif self.current == ' ':
 				self.position += 1
 				self.firstNumber = True
-
+				
 			if self.position < len(self.origin):
 				self.current = self.origin[self.position]
 
@@ -192,6 +262,7 @@ class Analyser():
 				else:
 					raise ValueError(") missing")
 				return ans
+
 			else:
 				raise ValueError("erro parenteses factor")
 		elif t.typo == "IDENTIFIER":
@@ -214,7 +285,6 @@ class Analyser():
 				raise ValueError("erro term")
 		return ans
 
-
 	def parseExpression(self):
 		ans = self.term()
 		while self.tokens.getTokencurrent().typo == 'PLUS' or self.tokens.getTokencurrent().typo == 'MINUS':
@@ -226,6 +296,47 @@ class Analyser():
 				ans = BinOp('-',[ans,self.term()])
 			else:
 				raise ValueError("erro parseExpression")
+		return ans
+
+	def relExpression(self):
+		
+		ans = self.parseExpression()
+		t = self.tokens.getTokencurrent()
+		if t.typo == "RELATIONAL":
+			if t.value == ">": #bigger than
+				self.tokens.selectNext()
+				return BinOp('>',[ans,self.parseExpression()])
+			elif t.value == "<": #less than
+				self.tokens.selectNext()
+				return BinOp('<',[ans,self.parseExpression()])
+			elif t.value == "==": #double equal
+				self.tokens.selectNext()
+				return BinOp('==',[ans,self.parseExpression()])
+		else:
+			raise ValueError("relExpresion error")
+
+	def boolFactor(self):
+		t = self.tokens.getTokencurrent()	
+		if t.typo == "NOT":
+			self.tokens.selectNext()
+			return UnOp('!',[self.boolFactor()])
+		else:
+			return self.relExpression() 
+
+	def boolTerm(self):
+		ans = self.boolFactor()
+		while self.tokens.getTokencurrent().typo == 'AND':
+			self.tokens.selectNext()
+			ans = BinOp('&&',[ans,self.boolFactor()])
+
+		return ans
+
+	def boolExpression(self):
+		ans = self.boolTerm()
+		while self.tokens.getTokencurrent().typo == 'OR':
+			self.tokens.selectNext()
+			ans = BinOp('||',[ans,self.boolTerm()])
+
 		return ans
 
 	def statments(self):
@@ -260,9 +371,58 @@ class Analyser():
 					t = self.tokens.getTokencurrent()	
 					if t.value == ")":
 						self.tokens.selectNext()
+						if self.tokens.getTokencurrent().typo != "SEMI-COLON":
+							raise ValueError("error printf paren")
 						return ans
 					else:
 						raise ValueError(") missing")
+				else:
+					raise ValueError("statment paren error")
+		elif t.typo == "IF":
+			self.tokens.selectNext()
+			t = self.tokens.getTokencurrent()
+			if t.typo == "PAREN":
+				if t.value == "(":
+					self.tokens.selectNext()
+					condition = self.boolExpression()
+					t = self.tokens.getTokencurrent()	
+					if t.value == ")":
+						self.tokens.selectNext()
+						t = self.tokens.getTokencurrent()
+						if t.typo == "THEN":
+							self.tokens.selectNext()
+							trueState = self.statment()
+							t = self.tokens.getTokencurrent()
+							if t.typo == "ELSE":
+								self.tokens.selectNext()
+								falseState = self.statment()
+							else:
+								falseState = None
+
+					else:
+						raise ValueError(") missing")
+
+			return IfElseNode([condition,trueState,falseState])
+
+		elif t.typo == "WHILE":
+			self.tokens.selectNext()
+			t = self.tokens.getTokencurrent()
+			if t.typo == "PAREN":
+				if t.value == "(":
+					self.tokens.selectNext()
+					condition = self.boolExpression()
+					t = self.tokens.getTokencurrent()	
+					if t.value == ")":
+						self.tokens.selectNext()
+						t = self.tokens.getTokencurrent()
+						if t.typo == "THEN":
+							self.tokens.selectNext()
+							trueState = self.statment()
+					else:
+						raise ValueError(") missing")
+
+			return WhileNode([condition,trueState])
+
 		elif t.typo == "BRACKETS":
 			if t.value == "{":
 				ans = self.statments()
@@ -280,7 +440,22 @@ class Analyser():
 		t = self.tokens.getTokencurrent()
 		if t.typo == "EQUAL":
 			self.tokens.selectNext()
-			return BinOp('=',[var,self.parseExpression()])
+			t = self.tokens.getTokencurrent()
+			if t.typo == "SCANF":
+				self.tokens.selectNext()
+				t = self.tokens.getTokencurrent()
+				if t.typo == "PAREN":
+					if t.value == "(":
+						self.tokens.selectNext()
+						t = self.tokens.getTokencurrent()
+						if t.value == ")":
+							self.tokens.selectNext()
+							ans = ScanfNode()
+							return BinOp('=',[var,ans])						
+						else:
+							raise ValueError("erro parentes scanf")
+			else:
+				return BinOp('=',[var,self.parseExpression()])
 		else:
 			raise("erro-Atribuiton")
 
@@ -306,6 +481,30 @@ class PrintfNode(Node):
 	def Evaluate(self,symbolTable):
 		print(self.children[0].Evaluate(symbolTable))
 
+class IfElseNode(Node):
+	def __init__(self, children):
+		self.children = children
+
+	def Evaluate(self,symbolTable):
+
+		if self.children[0].Evaluate(symbolTable):
+			return self.children[1].Evaluate(symbolTable)
+		elif self.children[2] != None:
+			return self.children[2].Evaluate(symbolTable)
+
+class WhileNode(Node):
+	def __init__(self, children):
+		self.children = children
+
+	def Evaluate(self,symbolTable):
+		while self.children[0].Evaluate(symbolTable):
+			self.children[1].Evaluate(symbolTable)
+
+class ScanfNode(Node):
+	def Evaluate(self,symbolTable):
+		value = int(input("Choose a number"))
+		return value 
+
 class BinOp(Node):
 	def __init__(self, value, children):
 		self.value = value
@@ -313,7 +512,7 @@ class BinOp(Node):
 
 	def Evaluate(self, symbolTable):
 		if self.value == "=":
-			return symbolTable.setValue(self.children[0],self.children[1].Evaluate(symbolTable))
+			symbolTable.setValue(self.children[0],self.children[1].Evaluate(symbolTable))
 		else: 
 			if self.value == '+':
 				return self.children[0].Evaluate(symbolTable)+self.children[1].Evaluate(symbolTable)
@@ -323,6 +522,16 @@ class BinOp(Node):
 				return self.children[0].Evaluate(symbolTable)*self.children[1].Evaluate(symbolTable)
 			elif self.value == '/':
 				return self.children[0].Evaluate(symbolTable)//self.children[1].Evaluate(symbolTable)
+			elif self.value == '>':
+				return self.children[0].Evaluate(symbolTable)>self.children[1].Evaluate(symbolTable)
+			elif self.value == '<':
+				return self.children[0].Evaluate(symbolTable)<self.children[1].Evaluate(symbolTable)
+			elif self.value == '==':
+				return self.children[0].Evaluate(symbolTable)==self.children[1].Evaluate(symbolTable)
+			elif self.value == '&&':
+				return self.children[0].Evaluate(symbolTable) and self.children[1].Evaluate(symbolTable)
+			elif self.value == '||':
+				return self.children[0].Evaluate(symbolTable) or self.children[1].Evaluate(symbolTable)
 
 class UnOp(Node):
 	def __init__(self, value, children):
@@ -330,6 +539,8 @@ class UnOp(Node):
 		self.children = children
 
 	def Evaluate(self,symbolTable):
+		if self.value == '!':
+			return not self.children[0].Evaluate(symbolTable)
 		if self.value == '+':
 			return self.children[0].Evaluate(symbolTable)
 		else:
@@ -370,6 +581,7 @@ def main():
 	symbolTable = SymbolTable()
 	with open("testes.c") as f:
 	    content = f.readlines()
+
 	for expression in content:
 		root = Analyser(expression).statments()
 		root.Evaluate(symbolTable)

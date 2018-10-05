@@ -1,0 +1,1 @@
+{x=scanf();printf(x);}
