@@ -1,3 +1,4 @@
+#!/usr/bin/python
 class Token():
 	def __init__(self, typo, value):
 		self.typo = typo
@@ -234,6 +235,12 @@ class Tokenizador():
 				t  = Token('NOT','!')
 				self.Tkcurrent = Token('NOT','!')
 
+			elif self.current == ',':
+				self.position += 1
+				self.firstNumber = True
+				t  = Token('COMMA',',')
+				self.Tkcurrent = Token('COMMA',',')
+
 			elif self.current == ' ':
 				self.position += 1
 				self.firstNumber = True
@@ -406,12 +413,23 @@ class Analyser():
 				raise ValueError("erro brackets statments")
 
 	def statment(self):
+		varDecList = []
 		t = self.tokens.getTokencurrent()
 		if t.typo == "IDENTIFIER":
 			return self.atribution()
 		elif self.typeRecognize():
+			typo_temp = t.typo
 			self.tokens.selectNext()
-			self.statment()
+			t = self.tokens.getTokencurrent()
+			varDecList.append(t.value)
+			while t.typo != "SEMI-COLON":
+				self.tokens.selectNext()
+				t = self.tokens.getTokencurrent()
+				if t.typo == "COMMA":
+					self.tokens.selectNext()
+					t = self.tokens.getTokencurrent()
+					varDecList.append(t.value)
+			return VarDecNode(typo_temp,varDecList)
 		elif t.typo == "PRINTF":
 			self.tokens.selectNext()
 			t = self.tokens.getTokencurrent()
@@ -553,7 +571,7 @@ class WhileNode(Node):
 
 class ScanfNode(Node):
 	def Evaluate(self,symbolTable):
-		value = int(input("Choose a number"))
+		value = int(input("Choose a number: "))
 		return value 
 
 class BinOp(Node):
@@ -618,27 +636,49 @@ class NoOp(Node):
 	def Evaluate(self,symbolTable):
 		return self.value
 
+class VarDecNode(Node):
+	def __init__(self,value,children):
+		self.children = children
+		self.value = value
+
+	def Evaluate(self,symbolTable):
+		for i in self.children:
+			symbolTable.setValue(i,self.value)
+
 class SymbolTable():
 	def __init__(self):
 		self.symbolTable = {}
 
 	def getValue(self, key):
 		if key in self.symbolTable:
-			return self.symbolTable.get(key)
+			return self.symbolTable.get(key)[1]
 		else:
 			raise ValueError("key '{}' do not exists".format(key))
 
 	def setValue(self, key, value):
-		self.symbolTable['{}'.format(key)] = [value,'']
+		if key in self.symbolTable:
+			keyType = self.symbolTable.get(key)[0].lower()
+			valueType = value
+			if "<class '{}'>".format(keyType) == str(type(valueType)):
+				self.symbolTable.get(key).append(value)
+			else:
+				raise ValueError("wrong type for variable")
+		else:
+			self.symbolTable['{}'.format(key)] = [value]
 
 def main():
 	symbolTable = SymbolTable()
-	with open("testes.c") as f:
-	    content = f.readlines()
 
-	for expression in content:
-		root = Analyser(expression).mainEvaluate()
-		root.Evaluate(symbolTable)
+	with open("testes.c") as f:
+		content = f.readlines()
+	content = [x.strip() for x in content] 
+
+	code = ""
+	for line in content:
+		code+=line
+
+	root = Analyser(code).mainEvaluate()
+	root.Evaluate(symbolTable)
 
 if __name__ == "__main__":
 	main()

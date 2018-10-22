@@ -1,1 +1,1 @@
-{x=scanf();printf(x);}
+char main(){x=scanf();y=scanf();printf(x+y);}
