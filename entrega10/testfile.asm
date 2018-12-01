@@ -8,7 +8,6 @@ False equ 0
 segment . data
 segment . bss
 x_0 RESD 1
-a_0 RESD 1
 y_0 RESD 1
 section .text
 global _start
@@ -60,9 +59,22 @@ RET
 _ start :
 MOV EBX,5
 MOV [x_0], EBX
-MOV EBX,7
-MOV [a_0], EBX
-MOV EBX, x_0
+MOV EBX,3
 MOV EAX,2
 ADD EBX, EAX
 MOV [y_0], EBX
+LOOP_0
+MOV EAX,10
+CMP EAX, EBX
+CALL binop_jl
+CMP EBX, False
+JE EXIT_0
+MOV EBX, x_0
+MOV EAX,1
+ADD EBX, EAX
+MOV [x_0], EBX
+JUMP LOOP_0
+EXIT_0
+MOV EBX, [x_0]
+PUSH EBX
+CALL print

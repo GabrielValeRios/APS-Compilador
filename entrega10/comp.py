@@ -527,7 +527,8 @@ class BinOp(Node):
 	def Evaluate(self, symbolTable):
 		if self.value == "=":
 			key = str(self.children[0]) + "_" + str(symbolTable.id)
-			var.append(key)
+			if key not in var: 
+				var.append(key)
 			self.children[1].Evaluate(symbolTable)
 			Asscode.append("MOV [{}], EBX".format(key))
 			#symbolTable.setValue(key,self.children[1].Evaluate(symbolTable))
