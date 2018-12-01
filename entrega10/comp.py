@@ -491,13 +491,24 @@ class PrintfNode(Node):
 class IfElseNode(Node):
 	def __init__(self, children):
 		self.children = children
+		self.id = None
 
 	def Evaluate(self,symbolTable):
+		self.id = Id.getNew("loop")
+		symbolTable.setValue('loop', self.id)
+		Asscode.append("LOOP_" + "{}".format(self.id))
+		self.children[0].Evaluate(symbolTable)
+		self.children[1].Evaluate(symbolTable)
+		Asscode.append("JUMP LOOP_" + "{}".format(self.id))
+		Asscode.append("EXIT_" + "{}".format(self.id))
 
-		if self.children[0].Evaluate(symbolTable):
-			return self.children[1].Evaluate(symbolTable)
-		elif self.children[2] != None:
-			return self.children[2].Evaluate(symbolTable)
+		if self.children[2] != None:
+			self.id = Id.getNew("loop")
+			symbolTable.setValue('loop', self.id)
+			Asscode.append("LOOP_" + "{}".format(self.id))
+			self.children[2].Evaluate(symbolTable)
+			Asscode.append("JUMP LOOP_" + "{}".format(self.id))
+			Asscode.append("EXIT_" + "{}".format(self.id))
 
 class WhileNode(Node):
 	def __init__(self, children):
@@ -505,7 +516,7 @@ class WhileNode(Node):
 		self.id = None
 
 	def Evaluate(self,symbolTable):
-		self.id = Id.getNew("while")
+		self.id = Id.getNew("loop")
 		symbolTable.setValue('loop', self.id)
 		Asscode.append("LOOP_" + "{}".format(self.id))
 		#while self.children[0].Evaluate(symbolTable):
@@ -558,7 +569,13 @@ class BinOp(Node):
 				#return self.children[0].Evaluate(symbolTable)//self.children[1].Evaluate(symbolTable)
 
 			elif self.value == '>':
-				return self.children[0].Evaluate(symbolTable)>self.children[1].Evaluate(symbolTable)
+				self.children[0].Evaluate(symbolTable)
+				Asscode.append("MOV EAX,{}".format(self.children[1].value))
+				Asscode.append("CMP EAX, EBX")
+				Asscode.append("CALL binop_jg")
+				Asscode.append("CMP EBX, False")
+				Asscode.append("JE EXIT_{}".format(symbolTable.getValue('loop')))
+				#return self.children[0].Evaluate(symbolTable)>self.children[1].Evaluate(symbolTable)
 			elif self.value == '<':
 				self.children[0].Evaluate(symbolTable)
 				Asscode.append("MOV EAX,{}".format(self.children[1].value))
@@ -567,13 +584,15 @@ class BinOp(Node):
 				Asscode.append("CMP EBX, False")
 				Asscode.append("JE EXIT_{}".format(symbolTable.getValue('loop')))
 				#return self.children[0].Evaluate(symbolTable)<self.children[1].Evaluate(symbolTable)
+
+			"""
 			elif self.value == '==':
 				return self.children[0].Evaluate(symbolTable)==self.children[1].Evaluate(symbolTable)
 			elif self.value == '&&':
 				return self.children[0].Evaluate(symbolTable) and self.children[1].Evaluate(symbolTable)
 			elif self.value == '||':
 				return self.children[0].Evaluate(symbolTable) or self.children[1].Evaluate(symbolTable)
-			
+			"""
 
 class UnOp(Node):
 	def __init__(self, value, children):
