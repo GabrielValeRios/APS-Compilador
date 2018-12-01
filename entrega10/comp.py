@@ -1,4 +1,6 @@
-#!/usr/bin/python
+var = []
+Asscode = []
+
 class Token():
 	def __init__(self, typo, value):
 		self.typo = typo
@@ -43,11 +45,6 @@ class Tokenizador():
 					else:
 						raise ValueError("Comentary not terminated.Expecting */")
 		return t
-
-	def selectLast(self,typo,value):
-		self.position -= 1
-		self.current = self.origin[self.position]
-		self.Tkcurrent = Token(typo, value)
 
 	def selectNext(self):
 		t = None
@@ -108,26 +105,6 @@ class Tokenizador():
 				elif resultIdent == "scanf":
 					self.firstNumber = True
 					t = Token('SCANF', resultIdent)
-					self.Tkcurrent = t
-					resultIdent = ''
-				elif resultIdent == "int":
-					self.firstNumber = True
-					t = Token('INT', resultIdent)
-					self.Tkcurrent = t
-					resultIdent = ''
-				elif resultIdent == "char":
-					self.firstNumber = True
-					t = Token('CHAR', resultIdent)
-					self.Tkcurrent = t
-					resultIdent = ''
-				elif resultIdent == "void":
-					self.firstNumber = True
-					t = Token('VOID', resultIdent)
-					self.Tkcurrent = t
-					resultIdent = ''
-				elif resultIdent == "return":
-					self.firstNumber = True
-					t = Token('RETURN', resultIdent)
 					self.Tkcurrent = t
 					resultIdent = ''
 
@@ -240,12 +217,6 @@ class Tokenizador():
 				t  = Token('NOT','!')
 				self.Tkcurrent = Token('NOT','!')
 
-			elif self.current == ',':
-				self.position += 1
-				self.firstNumber = True
-				t  = Token('COMMA',',')
-				self.Tkcurrent = Token('COMMA',',')
-
 			elif self.current == ' ':
 				self.position += 1
 				self.firstNumber = True
@@ -294,6 +265,7 @@ class Analyser():
 				else:
 					raise ValueError(") missing")
 				return ans
+
 			else:
 				raise ValueError("erro parenteses factor")
 		elif t.typo == "IDENTIFIER":
@@ -329,7 +301,8 @@ class Analyser():
 				raise ValueError("erro parseExpression")
 		return ans
 
-	def relExpression(self):		
+	def relExpression(self):
+		
 		ans = self.parseExpression()
 		t = self.tokens.getTokencurrent()
 		if t.typo == "RELATIONAL":
@@ -369,91 +342,9 @@ class Analyser():
 
 		return ans
 
-	def typeRecognize(self):
-		t = self.tokens.getTokencurrent()
-		if t.typo == "VOID" or t.typo == "INT" or t.typo == "CHAR":	
-			return True
-		return False
-	"""
-	def mainEvaluate(self):
-		t = self.tokens.getTokencurrent()
-
-		if self.typeRecognize():
-			self.tokens.selectNext()
-			t = self.tokens.getTokencurrent()
-			if t.typo == "MAIN":
-				self.tokens.selectNext()
-				t = self.tokens.getTokencurrent()
-				if t.typo == "PAREN":
-					if t.value == "(":
-						self.tokens.selectNext()
-						t = self.tokens.getTokencurrent()
-						if t.typo == "PAREN":
-							if t.value == ")":
-								self.tokens.selectNext()
-								return self.statments()
-				else:
-					raise ValueError("mainParen Error")
-			else:
-				raise ValueError("main needed")
-		else:
-			raise ValueError("typo missing")
-	"""
-	def funcStatments(self):
-		t = self.tokens.getTokencurrent()
-		childrens = []
-		while t.typo != None:
-			if self.typeRecognize():
-				funcDecList = []
-				t = self.tokens.getTokencurrent()
-				typo_temp = t.typo
-				funcDecList.append(typo_temp)
-				self.tokens.selectNext()
-				t = self.tokens.getTokencurrent()
-				typo = t.typo
-				value = t.value
-				self.tokens.selectNext()
-				t = self.tokens.getTokencurrent()
-				if t.typo == "PAREN": 	
-					self.tokens.selectLast(typo,value)
-					t = self.tokens.getTokencurrent()
-					funcName = t.value
-					self.tokens.selectNext()
-					self.tokens.selectNext()
-					while True:
-						if self.typeRecognize():
-							t = self.tokens.getTokencurrent()
-							typo_temp = t.typo
-							self.tokens.selectNext()
-							t = self.tokens.getTokencurrent()
-							value = t.value
-							funcDecList.append(VarDecNode(typo_temp,[value]))
-							self.tokens.selectNext()
-							t = self.tokens.getTokencurrent()
-							if t.typo == "COMMA":
-								self.tokens.selectNext()
-								continue
-							else:
-								break
-						else:
-							break
-					self.tokens.selectNext()
-					commandsStuff = self.statments()
-					funcDecList.append(commandsStuff)
-					childrens.append(funcDec(funcName,funcDecList))
-					self.tokens.selectNext()
-					t = self.tokens.getTokencurrent()
-			else:
-				t.typo = None
-
-		mainCall = funcCall('main',[])
-		childrens.append(mainCall)
-		master = masterNode(childrens)
-		return master
-
 	def statments(self):
-
 		t = self.tokens.getTokencurrent()
+
 		if t.typo == "BRACKETS":
 			if t.value == "{":
 				statments = []
@@ -470,32 +361,9 @@ class Analyser():
 				raise ValueError("erro brackets statments")
 
 	def statment(self):
-		varDecList = []
 		t = self.tokens.getTokencurrent()
 		if t.typo == "IDENTIFIER":
-			return self.atribution()
-
-		elif self.typeRecognize():
-			typo_temp = t.typo
-			self.tokens.selectNext()
-			t = self.tokens.getTokencurrent()
-			typo = t.typo
-			value = t.value
-			self.tokens.selectNext()
-			t = self.tokens.getTokencurrent()
-			if t.typo != "PAREN":
-				t = self.tokens.getTokencurrent()
-				self.tokens.selectLast(typo,value)
-				t = self.tokens.getTokencurrent()
-				varDecList.append(t.value)
-				while t.typo != "SEMI-COLON":
-					self.tokens.selectNext()
-					t = self.tokens.getTokencurrent()
-					if t.typo == "COMMA":
-						self.tokens.selectNext()
-						t = self.tokens.getTokencurrent()
-						varDecList.append(t.value)
-				return VarDecNode(typo_temp,varDecList)
+			return self.atribution() 
 		elif t.typo == "PRINTF":
 			self.tokens.selectNext()
 			t = self.tokens.getTokencurrent()
@@ -555,14 +423,7 @@ class Analyser():
 							trueState = self.statment()
 					else:
 						raise ValueError(") missing")
-
 			return WhileNode([condition,trueState])
-
-		elif t.typo == "RETURN":
-			self.tokens.selectNext()
-			t = self.tokens.getTokencurrent()
-			r = returnNode([self.parseExpression()])
-			return r
 
 		elif t.typo == "BRACKETS":
 			if t.value == "{":
@@ -595,33 +456,6 @@ class Analyser():
 							return BinOp('=',[var,ans])						
 						else:
 							raise ValueError("erro parentes scanf")
-			elif t.typo == "IDENTIFIER":
-				funcName = t.value
-				typo = t.typo
-				value = t.value
-				self.tokens.selectNext()
-				t = self.tokens.getTokencurrent()
-
-				if t.typo == "PAREN":
-					if t.value == "(":
-						args  = []
-						self.tokens.selectNext()
-						while t.value != ")":	
-							ans = self.parseExpression()
-							args.append(ans)
-							t = self.tokens.getTokencurrent()
-							if t.typo == "COMMA":
-								self.tokens.selectNext()
-								t = self.tokens.getTokencurrent()
-						
-						self.tokens.selectNext()
-						t = self.tokens.getTokencurrent()
-						if t.typo == "SEMI-COLON":
-							return BinOp('=',[var,funcCall(funcName,args)])
-				else:
-					self.tokens.selectLast(typo,value)
-					t = self.tokens.getTokencurrent()
-					return BinOp('=',[var,self.parseExpression()])
 			else:
 				return BinOp('=',[var,self.parseExpression()])
 		else:
@@ -631,63 +465,9 @@ class Node():
 	def __init__(self):
 		self.value = None
 		self.children = []
+		self.id = None
 	def Evaluate():
 		pass
-
-class masterNode(Node):
-	def __init__(self,children):
-		self.children = children
-
-	def Evaluate(self):
-		symbolTable = SymbolTable()
-		for i in self.children:
-			i.Evaluate(symbolTable)
-
-class returnNode(Node):
-	def __init__(self, children):
-		self.children = children
-
-	def Evaluate(self,symbolTable):
-		ans = self.children[0].Evaluate(symbolTable)
-		return ans
-
-class funcDec(Node):
-	def __init__(self,value,children):
-		self.value = value
-		self.children = children
-		
-	def Evaluate(self,symbolTable):
-		symbolTable.createValue('func',self.value)
-		symbolTable.setValue(self.value,self)
-
-class funcCall(Node):
-	def __init__(self,value,children):
-		self.value = value
-		self.children = children
-		self.NewSymbolTable = SymbolTable() #Passar a symboltable atual como ancestor
-
-	def Evaluate(self,symbolTable):
-		self.NewSymbolTable.ancestor = symbolTable
-
-		func = symbolTable.getValue(self.value)
-		argsName = []
-		for i in range(1, len(func.children)-1):
-			ref = func.children[i].children[0]
-			argsName.append(ref) #precisa guardar o nome da variável aqui
-			func.children[i].Evaluate(self.NewSymbolTable) #Declarou os argumentos na nova ST
-
-		if (len(self.children) != 0):
-			for i, j in enumerate(self.children):
-				self.NewSymbolTable.setValue(argsName[i], j.Evaluate(symbolTable)) #passar o valor dos filhos para a nova ST na ordem correta
-
-        #Evaluate do ultimo filho (comandos)
-		for e in func.children[len(func.children)-1].children:
-			tp = type(e) #aquiii
-			typo = "<class '__main__.returnNode'>"
-			if str(tp)  == typo:
-				return e.Evaluate(self.NewSymbolTable)
-			else:
-				e.Evaluate(self.NewSymbolTable)
 
 class StatmentsNode(Node):
 	def __init__(self, children):
@@ -702,7 +482,11 @@ class PrintfNode(Node):
 		self.children = children
 
 	def Evaluate(self,symbolTable):
-		print(self.children[0].Evaluate(symbolTable))
+		var = self.children[0].Evaluate(symbolTable)
+		Asscode.append("MOV EBX, [{}]".format(var))
+		Asscode.append("PUSH EBX")
+		Asscode.append("CALL print")
+		#print(self.children[0].Evaluate(symbolTable))
 
 class IfElseNode(Node):
 	def __init__(self, children):
@@ -718,14 +502,21 @@ class IfElseNode(Node):
 class WhileNode(Node):
 	def __init__(self, children):
 		self.children = children
+		self.id = None
 
 	def Evaluate(self,symbolTable):
-		while self.children[0].Evaluate(symbolTable):
-			self.children[1].Evaluate(symbolTable)
+		self.id = Id.getNew("while")
+		symbolTable.setValue('loop', self.id)
+		Asscode.append("LOOP_" + "{}".format(self.id))
+		#while self.children[0].Evaluate(symbolTable):
+		self.children[0].Evaluate(symbolTable)
+		self.children[1].Evaluate(symbolTable)
+		Asscode.append("JUMP LOOP_" + "{}".format(self.id))
+		Asscode.append("EXIT_" + "{}".format(self.id))
 
 class ScanfNode(Node):
 	def Evaluate(self,symbolTable):
-		value = int(input("Choose a number: "))
+		value = int(input("Choose a number"))
 		return value 
 
 class BinOp(Node):
@@ -735,26 +526,53 @@ class BinOp(Node):
 
 	def Evaluate(self, symbolTable):
 		if self.value == "=":
-			symbolTable.setValue(self.children[0],self.children[1].Evaluate(symbolTable))
+			key = str(self.children[0]) + "_" + str(symbolTable.id)
+			var.append(key)
+			self.children[1].Evaluate(symbolTable)
+			Asscode.append("MOV [{}], EBX".format(key))
+			#symbolTable.setValue(key,self.children[1].Evaluate(symbolTable))
+
 		else: 
 			if self.value == '+':
-				return self.children[0].Evaluate(symbolTable)+self.children[1].Evaluate(symbolTable)
+				test = self.children[0].Evaluate(symbolTable)
+				if test != None:
+					Asscode.append("MOV EBX, {}".format(test))
+				Asscode.append("MOV EAX,{}".format(self.children[1].value))
+				Asscode.append("ADD EBX, EAX")
+				#return self.children[0].Evaluate(symbolTable)+self.children[1].Evaluate(symbolTable)
 			elif self.value == '-':
-				return self.children[0].Evaluate(symbolTable)-self.children[1].Evaluate(symbolTable)
+				self.children[0].Evaluate(symbolTable)
+				Asscode.append("MOV EAX,{}".format(self.children[1].value))
+				Asscode.append("SUB EBX, EAX")
+				#return self.children[0].Evaluate(symbolTable)-self.children[1].Evaluate(symbolTable)
 			elif self.value == '*':
-				return self.children[0].Evaluate(symbolTable)*self.children[1].Evaluate(symbolTable)
+				self.children[0].Evaluate(symbolTable)
+				Asscode.append("MOV EAX,{}".format(self.children[1].value))
+				Asscode.append("IMUL EBX, EAX")
+				#return self.children[0].Evaluate(symbolTable)*self.children[1].Evaluate(symbolTable)
 			elif self.value == '/':
-				return self.children[0].Evaluate(symbolTable)//self.children[1].Evaluate(symbolTable)
+				self.children[0].Evaluate(symbolTable)
+				Asscode.append("MOV EAX,{}".format(self.children[1].value))
+				Asscode.append("IDIV EBX, EAX")
+				#return self.children[0].Evaluate(symbolTable)//self.children[1].Evaluate(symbolTable)
+
 			elif self.value == '>':
 				return self.children[0].Evaluate(symbolTable)>self.children[1].Evaluate(symbolTable)
 			elif self.value == '<':
-				return self.children[0].Evaluate(symbolTable)<self.children[1].Evaluate(symbolTable)
+				self.children[0].Evaluate(symbolTable)
+				Asscode.append("MOV EAX,{}".format(self.children[1].value))
+				Asscode.append("CMP EAX, EBX")
+				Asscode.append("CALL binop_jl")
+				Asscode.append("CMP EBX, False")
+				Asscode.append("JE EXIT_{}".format(symbolTable.getValue('loop')))
+				#return self.children[0].Evaluate(symbolTable)<self.children[1].Evaluate(symbolTable)
 			elif self.value == '==':
 				return self.children[0].Evaluate(symbolTable)==self.children[1].Evaluate(symbolTable)
 			elif self.value == '&&':
 				return self.children[0].Evaluate(symbolTable) and self.children[1].Evaluate(symbolTable)
 			elif self.value == '||':
 				return self.children[0].Evaluate(symbolTable) or self.children[1].Evaluate(symbolTable)
+			
 
 class UnOp(Node):
 	def __init__(self, value, children):
@@ -774,14 +592,16 @@ class IntVal(Node):
 		self.value = value
 
 	def Evaluate(self,symbolTable):
-		return self.value
+		Asscode.append("MOV EBX," + str(self.value))
+		#return self.value
 
 class VarVal(Node):
 	def __init__(self, value):
 		self.value = value
 
 	def Evaluate(self,symbolTable):
-		return symbolTable.getValue(self.value)
+		return str(self.value) + "_" + str(symbolTable.id)
+		#return symbolTable.getValue(self.value)
 
 class NoOp(Node):
 	def __init__(self):
@@ -790,45 +610,109 @@ class NoOp(Node):
 	def Evaluate(self,symbolTable):
 		return self.value
 
-class VarDecNode(Node):
-	def __init__(self,value,children):
-		self.children = children
-		self.value = value
-
-	def Evaluate(self,symbolTable):
-		for i in self.children:
-			symbolTable.createValue(self.value,i)
-
 class SymbolTable():
 	def __init__(self):
 		self.symbolTable = {}
-		self.ancestor = None 
+		self.id = None
 
 	def getValue(self, key):
-		if key in self.symbolTable:
-			return self.symbolTable.get(key)[1]
-		else:
-			if self.ancestor:
-				return self.ancestor.getValue(key)
-			else:
-				raise ValueError("Senpai")
+		return self.symbolTable.get(key)
 
 	def setValue(self, key, value):
-		if key in self.symbolTable:
-			keyType = self.symbolTable.get(key)[0].lower()
-			valueType = value
-			if "<class '{}'>".format(keyType) == str(type(valueType)) or keyType == 'func':
-				self.symbolTable[key][1] = value
-			else:
-				raise ValueError("wrong type for variable")
+		self.symbolTable[key] = value
+
+class Id():
+
+	id_gen = {}
+
+	@staticmethod
+	def getNew(name):
+		if name in Id.id_gen:
+			Id.id_gen[name] += 1
+			return Id.id_gen[name]
 		else:
-			raise ValueError("setValue error")
+			Id.id_gen[name] = 0
+			return Id.id_gen[name]
 
-	def createValue(self,typo,key):
-		self.symbolTable['{}'.format(key)] = [typo,None]
+class AssemblyCode():
+	def __init__(self, var, code):
+		self.var = var
+		self.code = code
 
+	def Buildfile(self):
+		first = ['SYS_EXIT equ 1',
+				 'SYS_READ equ 3',
+				 'SYS_WRITE equ 4',
+				 'STDIN equ 0',
+				 'STDOUT equ 1',
+				 'True equ 1',
+				 'False equ 0',
+				 'segment . data',
+				 'segment . bss'
+				]
+		crap = 'ADD EDX, {}'.format('0')
+		second = ['section .text',
+				  'global _start',
+				  'print :', 
+				  'POP EBX',
+				  'POP EAX',
+				  'PUSH EBX',
+				  'XOR ESI , ESI',
+				  'print_dec :',
+				  'MOV EDX, 0',
+				  'MOV EBX, 0x000A',
+				  'DIV EBX',
+				   crap,
+				  'PUSH EDX',
+				  'INC ESI',
+				  'CMP EAX, 0',
+				  'JZ print_next',
+				  'JMP print_dec',
+				  'print_next :',
+				  'CMP ESI , 0',
+				  'JZ print _ exit',
+				  'DEC ESI',
+				  'MOV EAX, SYS_WRITE',
+				  'MOV EBX, STDOUT',
+				  'POP ECX',
+				  'MOV [res] , ECX',
+				  'MOV ECX, res',
+				  'MOV EDX, 1',
+				  'INT 0 x80',
+				  'JMP prin t_next',
+				  'print _ exit :',
+				  'RET',
+				  'binop_je :',
+				  'JE binop_true',
+				  'JMP binop_ false',
+				  'binop_jg :',
+				  'JG binop_true',
+				  'JMP binop_false',
+				  'binop_jl :',
+				  'JL binop_true',
+				  'JMP binop_false',
+				  'binop_false :',
+				  'MOV EBX, False',
+				  'JMP binop_exit',
+				  'binop_true :',
+				  'MOV EBX, True',
+				  'bin op_exit :',
+				  'RET',
+				  '_ start :'
+				]
+
+		for v in range(0,len(self.var)):
+			self.var[v] = self.var[v] + " RESD 1"
+
+		assCode = first +  self.var + second + self.code
+		f = open("testfile.asm","w")
+		for line in assCode:
+			f.write(line + "\n")
+		f.close()
 
 def main():
+	symbolTable = SymbolTable()
+	symbolTable.id = Id.getNew("st")
 
 	with open("testes.c") as f:
 		content = f.readlines()
@@ -838,8 +722,11 @@ def main():
 	for line in content:
 		code+=line
 
-	root = Analyser(code).funcStatments()
-	root.Evaluate()
+	root = Analyser(code).statments()
+	root.Evaluate(symbolTable)
+
+	t = AssemblyCode(var, Asscode)
+	t.Buildfile()
 
 if __name__ == "__main__":
 	main()

@@ -43,7 +43,8 @@ void main()
     };
     */
     int v;
-    v = func1(p);
+    char c;
+    v = func1(2);
     printf(v+1);
     
 }
